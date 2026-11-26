@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@theme {
+  --color-nude-bg: #FAF6F2;
+  --color-nude-surface: #F3E5D8;
+  --color-nude-card: #E8D4C3;
+  --color-nude-border: #D6C3B3;
+  --color-ink-primary: #1C1917;
+  --color-ink-hover: #292524;
+  --color-ink-muted: #57534E;
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, Cambria, serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+    background-color: #FAF6F2;
+    color: #1C1917;
+  }
+
+  body {
+    background-color: #FAF6F2;
+    color: #1C1917;
+  }
+}
+
+.font-display {
+  font-family: "Cormorant Garamond", Georgia, Cambria, serif;
+}
+
+.safara-grain {
+  background-image: radial-gradient(rgba(28, 25, 23, 0.045) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.arch-frame {
+  border-top-left-radius: 9999px;
+  border-top-right-radius: 9999px;
+}
