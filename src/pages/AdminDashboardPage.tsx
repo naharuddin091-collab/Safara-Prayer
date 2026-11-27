@@ -3,12 +3,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Database,
   Edit3,
   FileText,
   Lock,
   LogOut,
   Package,
   Plus,
+  RefreshCw,
   Search,
   ShoppingBag,
   Trash2,
@@ -33,6 +35,9 @@ export const AdminDashboardPage: React.FC = () => {
   const {
     products,
     orders,
+    dbStatus,
+    dbError,
+    refreshFromSupabase,
     createOrder,
     updateOrder,
     updateOrderStatus,
@@ -315,14 +320,42 @@ export const AdminDashboardPage: React.FC = () => {
               Admin Dashboard
             </h1>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 self-start rounded-full border border-[#EADBC8] bg-[#F5EFEB] px-5 py-2.5 text-xs font-semibold text-[#1E1E1E] transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 sm:self-auto cursor-pointer"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout Admin
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+            <div
+              title={dbError ?? 'Status sinkronisasi database Supabase'}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold ${
+                dbStatus === 'supabase'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : dbStatus === 'connecting'
+                    ? 'border-[#DFCEB9] bg-[#F7F1E8] text-[#665E57]'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+              }`}
+            >
+              <Database className="h-3.5 w-3.5" />
+              {dbStatus === 'supabase'
+                ? 'Supabase Live'
+                : dbStatus === 'connecting'
+                  ? 'Menghubungkan Supabase...'
+                  : 'Mode Lokal (Jalankan schema.sql)'}
+            </div>
+            <button
+              type="button"
+              onClick={() => void refreshFromSupabase()}
+              title="Sinkronkan ulang dengan Supabase"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#EADBC8] bg-white px-3.5 py-2 text-xs font-semibold text-[#1E1E1E] transition-colors hover:border-[#C5A880] cursor-pointer"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${dbStatus === 'connecting' ? 'animate-spin' : ''}`} />
+              Sync
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-full border border-[#EADBC8] bg-[#F5EFEB] px-5 py-2 text-xs font-semibold text-[#1E1E1E] transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* 4 KPI Summary Cards */}

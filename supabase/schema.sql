@@ -1,67 +1,61 @@
 -- ============================================================================
--- Safara Prayer — Supabase Database Schema, Triggers, RLS & Seed Data
+-- Safara Prayer — Supabase Database Schema, RLS & Seed Data (Light Warm Sajadah)
+-- Jalankan script ini sekali di Supabase SQL Editor -> Run
 -- ============================================================================
-
-create extension if not exists "pgcrypto";
 
 -- ----------------------------------------------------------------------------
 -- 1. TABLES
 -- ----------------------------------------------------------------------------
 
-create table if not exists public.products (
-  id uuid primary key default gen_random_uuid(),
+create table if not exists public.safara_products (
+  id text primary key,
   name text not null,
-  slug text not null unique,
-  description text not null default '',
-  price numeric(12, 2) not null check (price >= 0),
+  category text not null,
+  price integer not null check (price >= 0),
   stock integer not null default 0 check (stock >= 0),
+  description text not null default '',
   image_url text not null default '',
-  is_active boolean not null default true,
+  is_available boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.orders (
-  id uuid primary key default gen_random_uuid(),
-  invoice_code text not null unique,
+create table if not exists public.safara_orders (
+  id text primary key,
   customer_name text not null,
-  customer_whatsapp text not null,
-  shipping_address text not null,
+  whatsapp text not null,
+  address text not null,
+  product_id text not null,
+  product_name text not null,
+  quantity integer not null check (quantity > 0),
+  unit_price integer not null check (unit_price >= 0),
+  total_price integer not null check (total_price >= 0),
   notes text not null default '',
-  total_amount numeric(12, 2) not null check (total_amount >= 0),
-  status text not null default 'pending' check (
-    status in ('pending', 'paid', 'processing', 'shipped', 'completed', 'cancelled')
+  payment_method text not null check (
+    payment_method in ('Transfer Bank BCA/BSI', 'QRIS', 'COD (Bayar di Tempat)')
+  ),
+  status text not null default 'Pending' check (
+    status in ('Pending', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan')
   ),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
-);
-
-create table if not exists public.order_items (
-  id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.orders(id) on delete cascade,
-  product_id uuid not null references public.products(id) on delete restrict,
-  quantity integer not null check (quantity > 0),
-  unit_price numeric(12, 2) not null check (unit_price >= 0),
-  subtotal numeric(12, 2) not null check (subtotal >= 0)
 );
 
 -- ----------------------------------------------------------------------------
 -- 2. INDEXES
 -- ----------------------------------------------------------------------------
 
-create index if not exists idx_products_slug on public.products (slug);
-create index if not exists idx_products_is_active on public.products (is_active);
-create index if not exists idx_orders_invoice_code on public.orders (invoice_code);
-create index if not exists idx_orders_status on public.orders (status);
-create index if not exists idx_orders_created_at on public.orders (created_at desc);
-create index if not exists idx_order_items_order_id on public.order_items (order_id);
-create index if not exists idx_order_items_product_id on public.order_items (product_id);
+create index if not exists idx_safara_products_category on public.safara_products (category);
+create index if not exists idx_safara_products_available on public.safara_products (is_available);
+create index if not exists idx_safara_orders_status on public.safara_orders (status);
+create index if not exists idx_safara_orders_whatsapp on public.safara_orders (whatsapp);
+create index if not exists idx_safara_orders_created_at on public.safara_orders (created_at desc);
 
 -- ----------------------------------------------------------------------------
--- 3. TRIGGERS (updated_at)
+-- 3. UPDATED_AT TRIGGER
 -- ----------------------------------------------------------------------------
 
-create or replace function public.handle_updated_at()
+create or replace function public.handle_safara_updated_at()
 returns trigger
 language plpgsql
 as $$
@@ -71,119 +65,178 @@ begin
 end;
 $$;
 
-drop trigger if exists trg_products_updated_at on public.products;
-create trigger trg_products_updated_at
-before update on public.products
+drop trigger if exists trg_safara_products_updated_at on public.safara_products;
+create trigger trg_safara_products_updated_at
+before update on public.safara_products
 for each row
-execute function public.handle_updated_at();
+execute function public.handle_safara_updated_at();
 
-drop trigger if exists trg_orders_updated_at on public.orders;
-create trigger trg_orders_updated_at
-before update on public.orders
+drop trigger if exists trg_safara_orders_updated_at on public.safara_orders;
+create trigger trg_safara_orders_updated_at
+before update on public.safara_orders
 for each row
-execute function public.handle_updated_at();
+execute function public.handle_safara_updated_at();
 
 -- ----------------------------------------------------------------------------
 -- 4. ROW LEVEL SECURITY (RLS)
 -- ----------------------------------------------------------------------------
 
-alter table public.products enable row level security;
-alter table public.orders enable row level security;
-alter table public.order_items enable row level security;
+alter table public.safara_products enable row level security;
+alter table public.safara_orders enable row level security;
 
--- Products policies
-drop policy if exists "Public can view active products" on public.products;
-create policy "Public can view active products"
-  on public.products
-  for select
-  to anon
-  using (is_active = true);
-
-drop policy if exists "Admin full access to products" on public.products;
-create policy "Admin full access to products"
-  on public.products
+drop policy if exists "Allow full access to safara_products" on public.safara_products;
+create policy "Allow full access to safara_products"
+  on public.safara_products
   for all
-  to authenticated
+  to anon, authenticated
   using (true)
   with check (true);
 
--- Orders policies
-drop policy if exists "Public can create orders" on public.orders;
-create policy "Public can create orders"
-  on public.orders
-  for insert
-  to anon
-  with check (status = 'pending');
-
-drop policy if exists "Public can view orders for tracking" on public.orders;
-create policy "Public can view orders for tracking"
-  on public.orders
-  for select
-  to anon
-  using (true);
-
-drop policy if exists "Admin full access to orders" on public.orders;
-create policy "Admin full access to orders"
-  on public.orders
+drop policy if exists "Allow full access to safara_orders" on public.safara_orders;
+create policy "Allow full access to safara_orders"
+  on public.safara_orders
   for all
-  to authenticated
-  using (true)
-  with check (true);
-
--- Order items policies
-drop policy if exists "Public can insert order items" on public.order_items;
-create policy "Public can insert order items"
-  on public.order_items
-  for insert
-  to anon
-  with check (quantity > 0);
-
-drop policy if exists "Public can view order items" on public.order_items;
-create policy "Public can view order items"
-  on public.order_items
-  for select
-  to anon
-  using (true);
-
-drop policy if exists "Admin full access to order items" on public.order_items;
-create policy "Admin full access to order items"
-  on public.order_items
-  for all
-  to authenticated
+  to anon, authenticated
   using (true)
   with check (true);
 
 -- ----------------------------------------------------------------------------
--- 5. SEED DATA (3 Produk Awal Safara Prayer)
+-- 5. SEED DATA (8 Produk Katalog Sajadah & Perlengkapan Ibadah Safara Prayer)
 -- ----------------------------------------------------------------------------
 
-insert into public.products (name, slug, description, price, stock, image_url, is_active)
+insert into public.safara_products (id, name, category, price, stock, description, image_url, is_available)
 values
   (
-    'Sajadah Travel Safara Pocket Series',
-    'sajadah-travel-safara-pocket-series',
-    'Sajadah travel ultra-ringan berbahan water-repellent silky nylon dengan pemberat sudut anti-terbang dan pouch mini seukuran saku. Nyaman dibawa untuk safar, umrah, maupun aktivitas harian.',
-    129000,
-    45,
-    'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=900&q=80',
-    true
-  ),
-  (
-    'Mukena Travel Parasut Korea Mini',
-    'mukena-travel-parasut-korea-mini',
-    'Mukena travel premium dari bahan parasut Korea adem, tidak menerawang, dan mudah dilipat menjadi pouch ringkas seukuran telapak tangan. Dilengkapi sajadah muka senada.',
-    249000,
+    'PROD-01',
+    'Sajadah Travel Turki Velvet',
+    'Sajadah Travel',
+    120000,
     30,
-    'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&w=900&q=80',
+    'Sajadah travel unggulan berbahan beludru lembut bernuansa champagne beige dengan motif mihrab Islami emboss dan rumbai rapi. Dilengkapi drawstring velvet pouch berujung emas.',
+    '/images/sajadah-travel-velvet.jpg',
     true
   ),
   (
-    'Sarung Travel Tenun Ringan Safara',
-    'sarung-travel-tenun-ringan-safara',
-    'Sarung travel berbahan katun tenun lembut yang ringan, tidak mudah kusut, dan cepat kering. Hadir dengan motif geometris Islami minimalis dan pouch serut eksklusif.',
-    159000,
+    'PROD-02',
+    'Sajadah Travel Ivory Minimalis',
+    'Sajadah Travel',
+    60000,
+    40,
+    'Sajadah travel warna warm ivory dengan detail bordir mihrab elegan yang tenang dan bersih. Ringan, mudah dilipat, serta dilengkapi pouch resleting ivory senada.',
+    '/images/product-ivory.jpg',
+    true
+  ),
+  (
+    'PROD-03',
+    'Sajadah Travel Warm Taupe Pocket',
+    'Sajadah Travel',
+    50000,
     35,
-    'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=900&q=80',
+    'Sajadah saku ultra-ringkas bernuansa warm taupe berbahan parasut halus tahan air. Praktis disimpan di tas harian untuk pelajar, pekerja dinamis, hingga wisatawan muslim.',
+    '/images/product-taupe.jpg',
+    true
+  ),
+  (
+    'PROD-04',
+    'Sajadah Travel Deep Charcoal Gold',
+    'Sajadah Travel',
+    85000,
+    25,
+    'Sajadah travel warna deep charcoal berwibawa dengan list bordir geometris emas hangat. Dilengkapi pouch resleting kanvas lembut yang maskulin sekaligus elegan.',
+    '/images/product-charcoal.jpg',
+    true
+  ),
+  (
+    'PROD-05',
+    'Sajadah Travel Woven Sand',
+    'Sajadah Travel',
+    95000,
+    20,
+    'Sajadah travel tenun halus bermotif geometris Islami dalam palet warm sand. Nyaman digunakan di berbagai permukaan dan hadir bersama pouch resleting taupe.',
+    '/images/hero-sajadah.jpg',
+    true
+  ),
+  (
+    'PROD-06',
+    'Hampers Sajadah Eksklusif Box',
+    'Hampers Sajadah',
+    450000,
+    15,
+    'Set bingkisan sajadah mewah dalam Signature Light Warm Hardbox berpita satin hitam, lengkap dengan paper bag monogram SP, sajadah emboss, velvet pouch, dan kartu doa.',
+    '/images/safara-packaging.jpg',
+    true
+  ),
+  (
+    'PROD-07',
+    'Mukena Safara Silk Premium',
+    'Mukena',
+    285000,
+    25,
+    'Mukena berbahan Armani Silk ivory yang lembut, sejuk di kulit, dan dihiasi renda tonal halus. Dilengkapi pouch serut sutra berujung emas yang anggun untuk perjalanan.',
+    '/images/mukena-safara-silk.jpg',
+    true
+  ),
+  (
+    'PROD-08',
+    'Paket Perlengkapan Umrah Lengkap',
+    'Perlengkapan Umrah',
+    850000,
+    10,
+    'Paket terpadu bernuansa ivory & warm beige untuk perjalanan suci: sajadah travel gulung, busana ibadah lembut, tasbih mutiara 33 butir, buku doa linen, dan travel organizer.',
+    '/images/paket-umrah-lengkap.jpg',
     true
   )
-on conflict (slug) do nothing;
+on conflict (id) do nothing;
+
+-- 3 Contoh Pesanan Awal
+insert into public.safara_orders (
+  id, customer_name, whatsapp, address, product_id, product_name,
+  quantity, unit_price, total_price, notes, payment_method, status, created_at
+)
+values
+  (
+    'INV-20261124-8A2F',
+    'Aisyah Rahmadani',
+    '081260448811',
+    'Jl. Teuku Umar No. 42, Setui, Banda Aceh, Aceh 23243',
+    'PROD-01',
+    'Sajadah Travel Turki Velvet',
+    2,
+    120000,
+    240000,
+    'Mohon bungkus rapi dengan kartu ucapan Safara Prayer.',
+    'Transfer Bank BCA/BSI',
+    'Pending',
+    '2026-11-24T09:15:00.000Z'
+  ),
+  (
+    'INV-20261123-4K9M',
+    'Nadia Putri Azzahra',
+    '085277193340',
+    'Komplek Griya Indah Blok C-12, Medan Sunggal, Sumatera Utara 20122',
+    'PROD-06',
+    'Hampers Sajadah Eksklusif Box',
+    1,
+    450000,
+    450000,
+    'Kartu ucapan: Barakallahu fiikum untuk Ibu tercinta.',
+    'QRIS',
+    'Diproses',
+    '2026-11-23T14:40:00.000Z'
+  ),
+  (
+    'INV-20261120-7P3X',
+    'Muhammad Farhan Hakim',
+    '081398221045',
+    'Jl. Kemang Raya No. 18, Jakarta Selatan, DKI Jakarta 12730',
+    'PROD-08',
+    'Paket Perlengkapan Umrah Lengkap',
+    2,
+    850000,
+    1700000,
+    'Untuk keberangkatan Umrah awal bulan depan, terima kasih.',
+    'Transfer Bank BCA/BSI',
+    'Selesai',
+    '2026-11-20T06:25:00.000Z'
+  )
+on conflict (id) do nothing;

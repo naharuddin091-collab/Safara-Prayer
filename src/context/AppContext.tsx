@@ -11,7 +11,11 @@ import {
   UpdateProductInput,
 } from '@/types';
 import { storageService } from '@/services/storageService';
+import { supabaseService } from '@/services/supabaseService';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { generateInvoiceId, generateProductId } from '@/utils/formatters';
+
+export type DatabaseStatus = 'connecting' | 'supabase' | 'local';
 
 interface OrderActionResult {
   success: boolean;
@@ -23,6 +27,9 @@ interface AppContextValue {
   products: Product[];
   orders: Order[];
   toasts: ToastItem[];
+  dbStatus: DatabaseStatus;
+  dbError: string | null;
+  refreshFromSupabase: () => Promise<void>;
   addToast: (type: ToastType, title: string, message?: string) => void;
   removeToast: (id: string) => void;
   // Order CRUD
@@ -43,6 +50,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [products, setProducts] = useState<Product[]>(() => storageService.getProducts());
   const [orders, setOrders] = useState<Order[]>(() => storageService.getOrders());
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [dbStatus, setDbStatus] = useState<DatabaseStatus>(
+    isSupabaseConfigured ? 'connecting' : 'local'
+  );
+  const [dbError, setDbError] = useState<string | null>(null);
 
   useEffect(() => {
     storageService.saveProducts(products);
@@ -67,8 +78,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [removeToast]
   );
 
+  const refreshFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setDbStatus('local');
+      setDbError('Konfigurasi VITE_SUPABASE_URL belum diisi.');
+      return;
+    }
+
+    setDbStatus('connecting');
+    const result = await supabaseService.fetchAll();
+    if (result.connected && result.products && result.orders) {
+      setProducts(result.products);
+      setOrders(result.orders);
+      setDbStatus('supabase');
+      setDbError(null);
+    } else {
+      setDbStatus('local');
+      setDbError(result.errorMessage ?? 'Tabel Supabase belum siap.');
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshFromSupabase();
+  }, [refreshFromSupabase]);
+
   // ==========================
-  // ORDER CRUD
+  // ORDER CRUD (Supabase + Local Cache)
   // ==========================
 
   const createOrder = useCallback(
@@ -111,19 +146,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createdAt: new Date().toISOString(),
       };
 
+      const updatedProduct: Product =
+        initialStatus !== 'Dibatalkan'
+          ? { ...targetProduct, stock: Math.max(0, targetProduct.stock - qty) }
+          : targetProduct;
+
       if (initialStatus !== 'Dibatalkan') {
         setProducts((prev) =>
-          prev.map((p) =>
-            p.id === targetProduct.id ? { ...p, stock: Math.max(0, p.stock - qty) } : p
-          )
+          prev.map((p) => (p.id === targetProduct.id ? updatedProduct : p))
         );
+        void supabaseService.upsertProduct(updatedProduct);
       }
 
       setOrders((prev) => [newOrder, ...prev]);
+      void supabaseService.upsertOrder(newOrder);
+
       addToast(
         'success',
         'Pesanan Berhasil Dibuat',
-        `Invoice ${newOrder.id} telah tersimpan dan stok diperbarui.`
+        `Invoice ${newOrder.id} tersimpan dan stok diperbarui.`
       );
       return { success: true, order: newOrder };
     },
@@ -144,41 +185,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const wasCancelled = existing.status === 'Dibatalkan';
       const willCancel = newStatus === 'Dibatalkan';
+      const targetProduct = products.find((p) => p.id === existing.productId);
 
       // Jika diubah dari aktif -> Dibatalkan, kembalikan stok otomatis
-      if (!wasCancelled && willCancel) {
+      if (!wasCancelled && willCancel && targetProduct) {
+        const restoredProduct: Product = {
+          ...targetProduct,
+          stock: targetProduct.stock + existing.quantity,
+        };
         setProducts((prev) =>
-          prev.map((p) =>
-            p.id === existing.productId ? { ...p, stock: p.stock + existing.quantity } : p
-          )
+          prev.map((p) => (p.id === targetProduct.id ? restoredProduct : p))
         );
+        void supabaseService.upsertProduct(restoredProduct);
       }
 
       // Jika diaktifkan kembali dari Dibatalkan -> status aktif, kurangi stok lagi
       if (wasCancelled && !willCancel) {
-        const product = products.find((p) => p.id === existing.productId);
-        if (product && product.stock < existing.quantity) {
+        if (targetProduct && targetProduct.stock < existing.quantity) {
           addToast(
             'error',
             'Stok Tidak Mencukupi',
-            `Tidak dapat mengaktifkan pesanan. Sisa stok ${product.name} hanya ${product.stock} pcs.`
+            `Tidak dapat mengaktifkan pesanan. Sisa stok ${targetProduct.name} hanya ${targetProduct.stock} pcs.`
           );
           return false;
         }
-        if (product) {
+        if (targetProduct) {
+          const deductedProduct: Product = {
+            ...targetProduct,
+            stock: Math.max(0, targetProduct.stock - existing.quantity),
+          };
           setProducts((prev) =>
-            prev.map((p) =>
-              p.id === existing.productId
-                ? { ...p, stock: Math.max(0, p.stock - existing.quantity) }
-                : p
-            )
+            prev.map((p) => (p.id === targetProduct.id ? deductedProduct : p))
           );
+          void supabaseService.upsertProduct(deductedProduct);
         }
       }
 
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
       );
+      void supabaseService.updateOrderStatus(orderId, newStatus);
 
       addToast(
         'success',
@@ -212,13 +258,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const wasActive = existing.status !== 'Dibatalkan';
       const willBeActive = input.status !== 'Dibatalkan';
 
-      // Hitung perubahan stok secara akurat
       const stockMap = new Map<string, number>();
       for (const p of products) {
         stockMap.set(p.id, p.stock);
       }
 
-      // Kembalikan stok lama sementara jika sebelumnya aktif
       if (wasActive && stockMap.has(existing.productId)) {
         stockMap.set(
           existing.productId,
@@ -226,7 +270,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
       }
 
-      // Kurangi stok baru jika status baru aktif
       if (willBeActive) {
         const availableStock = stockMap.get(nextProduct.id) ?? 0;
         if (availableStock < nextQty) {
@@ -252,14 +295,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         status: input.status,
       };
 
-      setProducts((prev) =>
-        prev.map((p) => ({
-          ...p,
-          stock: stockMap.get(p.id) ?? p.stock,
-        }))
-      );
+      const updatedProductsList: Product[] = products.map((p) => ({
+        ...p,
+        stock: stockMap.get(p.id) ?? p.stock,
+      }));
+      const changedProducts = updatedProductsList.filter((p) => {
+        const orig = products.find((o) => o.id === p.id);
+        return orig && orig.stock !== p.stock;
+      });
 
+      setProducts(updatedProductsList);
       setOrders((prev) => prev.map((o) => (o.id === orderId ? updatedOrder : o)));
+
+      if (changedProducts.length > 0) {
+        void supabaseService.upsertProducts(changedProducts);
+      }
+      void supabaseService.upsertOrder(updatedOrder);
+
       addToast('success', 'Pesanan Diperbarui', `Detail invoice ${updatedOrder.id} telah disimpan.`);
       return { success: true, order: updatedOrder };
     },
@@ -271,23 +323,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const existing = orders.find((o) => o.id === orderId);
       if (!existing) return;
 
-      // Kembalikan stok jika pesanan yang dihapus masih aktif (bukan Dibatalkan & bukan Selesai)
-      if (existing.status === 'Pending' || existing.status === 'Diproses' || existing.status === 'Dikirim') {
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.id === existing.productId ? { ...p, stock: p.stock + existing.quantity } : p
-          )
-        );
+      if (
+        existing.status === 'Pending' ||
+        existing.status === 'Diproses' ||
+        existing.status === 'Dikirim'
+      ) {
+        const targetProduct = products.find((p) => p.id === existing.productId);
+        if (targetProduct) {
+          const restored: Product = {
+            ...targetProduct,
+            stock: targetProduct.stock + existing.quantity,
+          };
+          setProducts((prev) => prev.map((p) => (p.id === restored.id ? restored : p)));
+          void supabaseService.upsertProduct(restored);
+        }
       }
 
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      void supabaseService.deleteOrder(orderId);
       addToast('info', 'Pesanan Dihapus', `Invoice ${existing.id} telah dihapus dari sistem.`);
     },
-    [orders, addToast]
+    [orders, products, addToast]
   );
 
   // ==========================
-  // PRODUCT CRUD
+  // PRODUCT CRUD (Supabase + Local Cache)
   // ==========================
 
   const createProduct = useCallback(
@@ -304,6 +364,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
 
       setProducts((prev) => [...prev, newProduct]);
+      void supabaseService.upsertProduct(newProduct);
       addToast('success', 'Produk Ditambahkan', `${newProduct.name} berhasil masuk katalog.`);
       return newProduct;
     },
@@ -330,6 +391,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
 
       setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)));
+      void supabaseService.upsertProduct(updated);
       addToast('success', 'Produk Diperbarui', `Perubahan pada ${updated.name} telah disimpan.`);
       return updated;
     },
@@ -341,14 +403,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const target = products.find((p) => p.id === productId);
       if (!target) return;
 
-      const nextState = !target.isAvailable;
-      setProducts((prev) =>
-        prev.map((p) => (p.id === productId ? { ...p, isAvailable: nextState } : p))
-      );
+      const updated: Product = { ...target, isAvailable: !target.isAvailable };
+      setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)));
+      void supabaseService.upsertProduct(updated);
       addToast(
         'info',
-        nextState ? 'Produk Diaktifkan' : 'Produk Dinonaktifkan',
-        `${target.name} kini ${nextState ? 'tersedia' : 'tidak tersedia'} di katalog.`
+        updated.isAvailable ? 'Produk Diaktifkan' : 'Produk Dinonaktifkan',
+        `${updated.name} kini ${updated.isAvailable ? 'tersedia' : 'tidak tersedia'} di katalog.`
       );
     },
     [products, addToast]
@@ -360,6 +421,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!target) return;
 
       setProducts((prev) => prev.filter((p) => p.id !== productId));
+      void supabaseService.deleteProduct(productId);
       addToast('info', 'Produk Dihapus', `${target.name} telah dihapus dari katalog.`);
     },
     [products, addToast]
@@ -371,6 +433,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         products,
         orders,
         toasts,
+        dbStatus,
+        dbError,
+        refreshFromSupabase,
         addToast,
         removeToast,
         createOrder,

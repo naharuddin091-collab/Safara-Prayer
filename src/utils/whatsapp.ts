@@ -1,7 +1,8 @@
 import { Order } from '@/types';
 import { formatDateID, formatRupiah } from '@/utils/formatters';
 
-export const ADMIN_WHATSAPP_NUMBER = '6281234567890';
+export const ADMIN_WHATSAPP_NUMBER =
+  (import.meta.env.VITE_WHATSAPP_NUMBER as string | undefined)?.trim() || '6281234567890';
 
 /**
  * Membuat URL WhatsApp terstruktur untuk konfirmasi pesanan baru ke Admin Safara Prayer
