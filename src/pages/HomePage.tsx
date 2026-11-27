@@ -76,6 +76,7 @@ export const HomePage: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Transfer Bank BCA/BSI');
   const [notes, setNotes] = useState('');
   const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
   const categories = useMemo(() => {
@@ -110,7 +111,7 @@ export const HomePage: React.FC = () => {
     setFormError('');
   };
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -129,27 +130,32 @@ export const HomePage: React.FC = () => {
       return;
     }
 
-    const result = createOrder({
-      customerName,
-      whatsapp,
-      address,
-      productId: selectedProduct.id,
-      quantity: effectiveQuantity,
-      notes,
-      paymentMethod,
-    });
+    setIsSubmitting(true);
+    try {
+      const result = await createOrder({
+        customerName,
+        whatsapp,
+        address,
+        productId: selectedProduct.id,
+        quantity: effectiveQuantity,
+        notes,
+        paymentMethod,
+      });
 
-    if (!result.success || !result.order) {
-      setFormError(result.error ?? 'Terjadi kesalahan saat membuat pesanan.');
-      return;
+      if (!result.success || !result.order) {
+        setFormError(result.error ?? 'Terjadi kesalahan saat menyimpan pesanan ke Supabase.');
+        return;
+      }
+
+      setCreatedOrder(result.order);
+      setCustomerName('');
+      setWhatsapp('');
+      setAddress('');
+      setQuantity(1);
+      setNotes('');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setCreatedOrder(result.order);
-    setCustomerName('');
-    setWhatsapp('');
-    setAddress('');
-    setQuantity(1);
-    setNotes('');
   };
 
   return (
@@ -683,11 +689,11 @@ export const HomePage: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={maxQuantity <= 0}
+                disabled={maxQuantity <= 0 || isSubmitting}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#231F1D] px-6 py-3.5 text-sm font-semibold text-[#FDFBF8] shadow-md transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
               >
                 <CheckCircle2 className="h-4 w-4 text-[#C8AE8C]" />
-                Buat Pesanan & Terbitkan Invoice
+                {isSubmitting ? 'Menyimpan Pesanan ke Supabase...' : 'Buat Pesanan & Terbitkan Invoice'}
               </button>
             </form>
 

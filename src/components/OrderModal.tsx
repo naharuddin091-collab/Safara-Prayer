@@ -27,7 +27,7 @@ interface OrderModalProps {
   initialOrder?: Order | null;
   products: Product[];
   onClose: () => void;
-  onSubmit: (payload: OrderModalSubmitPayload) => boolean;
+  onSubmit: (payload: OrderModalSubmitPayload) => Promise<boolean>;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -78,7 +78,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const selectedProduct = products.find((p) => p.id === productId);
   const estimatedTotal = (selectedProduct?.price ?? 0) * Math.max(1, quantity);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -97,7 +97,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       return;
     }
 
-    const ok = onSubmit({
+    const ok = await onSubmit({
       customerName: customerName.trim(),
       whatsapp: whatsapp.trim(),
       address: address.trim(),

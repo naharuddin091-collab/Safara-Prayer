@@ -176,16 +176,16 @@ export const AdminDashboardPage: React.FC = () => {
     setOrderModalOpen(true);
   };
 
-  const handleOrderModalSubmit = (payload: OrderModalSubmitPayload): boolean => {
+  const handleOrderModalSubmit = async (payload: OrderModalSubmitPayload): Promise<boolean> => {
     if (orderModalMode === 'create') {
-      const res = createOrder({
+      const res = await createOrder({
         ...payload,
         allowUnavailableProduct: true,
       });
       return res.success;
     }
     if (editingOrder) {
-      const res = updateOrder(editingOrder.id, payload);
+      const res = await updateOrder(editingOrder.id, payload);
       return res.success;
     }
     return false;
@@ -220,9 +220,9 @@ export const AdminDashboardPage: React.FC = () => {
 
   const handleProductModalSubmit = (payload: ProductModalSubmitPayload) => {
     if (productModalMode === 'create') {
-      createProduct(payload);
+      void createProduct(payload);
     } else if (editingProduct) {
-      updateProduct(editingProduct.id, payload);
+      void updateProduct(editingProduct.id, payload);
     }
   };
 
@@ -323,13 +323,12 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
             <div
               title={dbError ?? 'Status sinkronisasi database Supabase'}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold ${
-                dbStatus === 'supabase'
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold ${dbStatus === 'supabase'
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                   : dbStatus === 'connecting'
                     ? 'border-[#DFCEB9] bg-[#F7F1E8] text-[#665E57]'
                     : 'border-amber-200 bg-amber-50 text-amber-800'
-              }`}
+                }`}
             >
               <Database className="h-3.5 w-3.5" />
               {dbStatus === 'supabase'
@@ -425,11 +424,10 @@ export const AdminDashboardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('orders')}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'orders'
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${activeTab === 'orders'
                   ? 'bg-[#1E1E1E] text-[#FAF8F5] shadow-xs'
                   : 'text-[#5A5550] hover:text-[#1E1E1E]'
-              }`}
+                }`}
             >
               <ShoppingBag className="h-3.5 w-3.5" />
               Manajemen Pesanan ({orders.length})
@@ -437,11 +435,10 @@ export const AdminDashboardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('products')}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'products'
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-semibold transition-all cursor-pointer ${activeTab === 'products'
                   ? 'bg-[#1E1E1E] text-[#FAF8F5] shadow-xs'
                   : 'text-[#5A5550] hover:text-[#1E1E1E]'
-              }`}
+                }`}
             >
               <Package className="h-3.5 w-3.5" />
               Manajemen Katalog Produk ({products.length})
@@ -493,11 +490,10 @@ export const AdminDashboardPage: React.FC = () => {
                     key={status}
                     type="button"
                     onClick={() => setStatusFilter(status)}
-                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                      statusFilter === status
+                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${statusFilter === status
                         ? 'bg-[#1E1E1E] text-[#FAF8F5]'
                         : 'border border-[#EADBC8] bg-[#FAF8F5] text-[#5A5550] hover:border-[#C5A880] hover:text-[#1E1E1E]'
-                    }`}
+                      }`}
                   >
                     {status} ({statusCounts[status]})
                   </button>
@@ -658,11 +654,10 @@ export const AdminDashboardPage: React.FC = () => {
 
                           {isLowStock && (
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                                isZeroStock
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${isZeroStock
                                   ? 'bg-rose-100 text-rose-700'
                                   : 'bg-amber-100 text-amber-800'
-                              }`}
+                                }`}
                             >
                               <AlertTriangle className="h-3 w-3" />
                               {isZeroStock ? 'Stok Habis' : `Stok Menipis (${product.stock})`}
@@ -693,11 +688,10 @@ export const AdminDashboardPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => toggleProductAvailability(product.id)}
-                            className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition cursor-pointer ${
-                              product.isAvailable
+                            className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition cursor-pointer ${product.isAvailable
                                 ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                                 : 'border-[#DFCEB9] bg-[#EADBC8]/50 text-[#5A5550] hover:bg-[#EADBC8]'
-                            }`}
+                              }`}
                           >
                             {product.isAvailable ? 'Aktif' : 'Nonaktif'}
                           </button>
