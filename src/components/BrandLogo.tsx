@@ -5,8 +5,12 @@ interface BrandLogoProps {
   showTagline?: boolean;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  tone?: 'dark' | 'light';
 }
 
+/**
+ * Logo Monogram "SP" Safara Prayer yang saling bertaut anggun dalam SVG presisi
+ */
 export const SPMonogram: React.FC<{ className?: string }> = ({ className = 'h-12 w-12' }) => (
   <svg
     viewBox="0 0 120 130"
@@ -15,20 +19,12 @@ export const SPMonogram: React.FC<{ className?: string }> = ({ className = 'h-12
     className={className}
     aria-label="Monogram SP Safara Prayer"
   >
-    {/* Vertical stem & bowl of P (back layer) */}
+    {/* Huruf P Klasik Serif (Lapisan belakang) */}
     <path
       d="M54 36H76C90.5 36 99 44 99 56.5C99 69.5 89.5 77.5 74.5 77.5H64V112C64 115.5 65.5 117 70 117.5V120H46V117.5C50.5 117 52 115.5 52 112V43C52 39.5 50.5 38.5 46 38V36H54ZM64 41.5V72.5H72.5C82.5 72.5 87.5 66.5 87.5 56.8C87.5 47 82.2 41.5 72.5 41.5H64Z"
       fill="currentColor"
     />
-    {/* Subtle cutout halo behind S diagonal to create clean intertwined illusion */}
-    <path
-      d="M36 44C42 54 67 66 74 79"
-      stroke="#F3E5D8"
-      strokeWidth="6"
-      strokeLinecap="round"
-      className="opacity-0"
-    />
-    {/* Elegant Classic Serif S (intertwined front layer) */}
+    {/* Huruf S Klasik Serif yang bertaut anggun dengan P */}
     <path
       d="M78 14.5V35H75.2C73 25.2 66.2 18.8 55.2 18.8C45.2 18.8 39 24.4 39 32.6C39 40.2 44.5 44.8 57.2 51.8L64.5 55.8C78.8 63.6 84.5 71.2 84.5 82.5C84.5 97.2 72.2 106.5 54.5 106.5C45.2 106.5 37.2 104 31.8 100.2L29.2 105.2H26.8V78.5H29.6C32.4 91.8 41.2 101.2 54.2 101.2C65.2 101.2 72.6 95.4 72.6 86.2C72.6 78.2 67.2 73 54.4 66L47.2 62C33.8 54.6 28.2 47.4 28.2 36.4C28.2 22.8 39.8 13.5 55.5 13.5C63.5 13.5 70.2 15.6 74.8 18.8L76.2 14.5H78Z"
       fill="currentColor"
@@ -41,26 +37,33 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   showTagline = false,
   className = '',
   size = 'md',
+  tone = 'dark',
 }) => {
+  const primaryColor = tone === 'light' ? 'text-[#FAF8F5]' : 'text-[#1E1E1E]';
+  const secondaryColor = tone === 'light' ? 'text-[#EADBC8]' : 'text-[#5A5550]';
+  const ruleColor = tone === 'light' ? 'bg-[#C5A880]/60' : 'bg-[#C5A880]';
+
   if (variant === 'monogram') {
     const dim = size === 'sm' ? 'h-9 w-9' : size === 'lg' ? 'h-16 w-16' : 'h-12 w-12';
-    return <SPMonogram className={`text-[#1C1917] ${dim} ${className}`} />;
+    return <SPMonogram className={`${primaryColor} ${dim} ${className}`} />;
   }
 
   if (variant === 'horizontal') {
     return (
-      <div className={`inline-flex items-center gap-3 text-[#1C1917] ${className}`}>
+      <div className={`inline-flex items-center gap-3 ${primaryColor} ${className}`}>
         <SPMonogram className="h-10 w-10 shrink-0" />
         <div className="flex flex-col leading-none">
-          <span className="font-display text-xl font-semibold tracking-[0.22em] uppercase">
+          <span className="font-display text-xl font-semibold tracking-[0.2em] uppercase">
             SAFARA
           </span>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <span className="h-[0.75px] w-3 bg-[#1C1917]/50" />
-            <span className="font-display text-[10px] font-medium tracking-[0.36em] uppercase text-[#57534E]">
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className={`h-[1px] w-3.5 ${ruleColor}`} />
+            <span
+              className={`font-display text-[10px] font-medium tracking-[0.34em] uppercase ${secondaryColor}`}
+            >
               PRAYER
             </span>
-            <span className="h-[0.75px] w-3 bg-[#1C1917]/50" />
+            <span className={`h-[1px] w-3.5 ${ruleColor}`} />
           </div>
         </div>
       </div>
@@ -73,20 +76,22 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     size === 'sm' ? 'text-2xl' : size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl';
 
   return (
-    <div className={`inline-flex flex-col items-center text-center text-[#1C1917] ${className}`}>
+    <div className={`inline-flex flex-col items-center text-center ${primaryColor} ${className}`}>
       <SPMonogram className={monogramSize} />
       <span className={`mt-2 font-display font-medium tracking-[0.22em] uppercase ${titleSize}`}>
         SAFARA
       </span>
-      <div className="mt-1 flex items-center gap-3">
-        <span className="h-[0.75px] w-8 bg-[#1C1917]/45" />
-        <span className="font-display text-xs sm:text-sm font-medium tracking-[0.42em] uppercase text-[#1C1917]/90">
+      <div className="mt-1.5 flex items-center gap-3">
+        <span className={`h-[1px] w-8 ${ruleColor}`} />
+        <span
+          className={`font-display text-xs sm:text-sm font-medium tracking-[0.42em] uppercase ${secondaryColor}`}
+        >
           PRAYER
         </span>
-        <span className="h-[0.75px] w-8 bg-[#1C1917]/45" />
+        <span className={`h-[1px] w-8 ${ruleColor}`} />
       </div>
       {showTagline && (
-        <p className="mt-3 max-w-xs font-display text-sm sm:text-base italic leading-snug text-[#57534E]">
+        <p className={`mt-3 max-w-xs font-display text-sm sm:text-base italic leading-snug ${secondaryColor}`}>
           Elegance in Every Prayer,
           <br />
           Serenity in Every Journey.
@@ -96,9 +101,51 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   );
 };
 
-/* ============================================================================
- * Safara Prayer Signature Decorative Icons (Minimalist Hairline Motifs)
- * ============================================================================ */
+/**
+ * Ornamen Pola Mandala / Floral Islami tipis untuk latar belakang Hero & Footer
+ */
+export const MandalaOrnament: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <svg
+    viewBox="0 0 320 320"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={`pointer-events-none select-none ${className}`}
+    aria-hidden="true"
+  >
+    <g stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="160" cy="160" r="145" strokeDasharray="3 6" opacity="0.55" />
+      <circle cx="160" cy="160" r="122" opacity="0.45" />
+      <circle cx="160" cy="160" r="96" strokeDasharray="2 4" opacity="0.5" />
+      <circle cx="160" cy="160" r="68" opacity="0.45" />
+      <circle cx="160" cy="160" r="36" opacity="0.5" />
+      <circle cx="160" cy="160" r="14" opacity="0.6" />
+
+      {/* 8 Kelopak Mandala Islami Utama */}
+      {Array.from({ length: 8 }).map((_, idx) => {
+        const angle = idx * 45;
+        return (
+          <g key={angle} transform={`rotate(${angle} 160 160)`}>
+            <path d="M160 18 C178 46 184 74 160 104 C136 74 142 46 160 18 Z" opacity="0.5" />
+            <path d="M160 36 C170 54 172 72 160 90 C148 72 150 54 160 36 Z" opacity="0.4" />
+            <path d="M160 104 C168 118 168 134 160 146 C152 134 152 118 160 104 Z" opacity="0.55" />
+            <circle cx="160" cy="28" r="2.2" fill="currentColor" opacity="0.45" />
+          </g>
+        );
+      })}
+
+      {/* 8 Kelopak Floral Diagonal Halus */}
+      {Array.from({ length: 8 }).map((_, idx) => {
+        const angle = idx * 45 + 22.5;
+        return (
+          <g key={`diag-${angle}`} transform={`rotate(${angle} 160 160)`}>
+            <path d="M160 44 C170 68 170 92 160 116 C150 92 150 68 160 44 Z" opacity="0.32" />
+            <circle cx="160" cy="36" r="1.8" fill="currentColor" opacity="0.35" />
+          </g>
+        );
+      })}
+    </g>
+  </svg>
+);
 
 export const LotusIcon: React.FC<{ className?: string }> = ({ className = 'h-7 w-7' }) => (
   <svg
@@ -200,24 +247,5 @@ export const InfinityIcon: React.FC<{ className?: string }> = ({ className = 'h-
     aria-hidden="true"
   >
     <path d="M13 6C8.5 6 5 8.8 5 12C5 15.2 8.5 18 13 18C18.5 18 25.5 6 31 6C35.5 6 39 8.8 39 12C39 15.2 35.5 18 31 18C25.5 18 18.5 6 13 6Z" />
-  </svg>
-);
-
-export const OrnamentalCorner: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <svg
-    viewBox="0 0 220 220"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="0.9"
-    className={`pointer-events-none select-none ${className}`}
-    aria-hidden="true"
-  >
-    <circle cx="0" cy="0" r="170" strokeDasharray="3 5" opacity="0.45" />
-    <circle cx="0" cy="0" r="130" opacity="0.35" />
-    <circle cx="0" cy="0" r="85" opacity="0.3" />
-    <path d="M0 170C35 145 55 110 75 75C110 55 145 35 170 0" opacity="0.4" />
-    <path d="M0 120C28 100 45 75 60 60C75 45 100 28 120 0" opacity="0.35" />
-    <path d="M35 0C35 45 75 75 115 75" opacity="0.28" />
-    <path d="M0 35C45 35 75 75 75 115" opacity="0.28" />
   </svg>
 );

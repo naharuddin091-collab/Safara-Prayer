@@ -1,42 +1,80 @@
 @import "tailwindcss";
 
 @theme {
-  --color-nude-bg: #FAF6F2;
-  --color-nude-surface: #F3E5D8;
-  --color-nude-card: #E8D4C3;
-  --color-nude-border: #D6C3B3;
-  --color-ink-primary: #1C1917;
-  --color-ink-hover: #292524;
-  --color-ink-muted: #57534E;
+  /* Light Warm Luxury Palette inspired by Safara Prayer Packaging */
+  --color-nude-bg: #FDFBF8;
+  --color-nude-soft: #F7F1E8;
+  --color-nude-warm: #EFE3D3;
+  --color-nude-border: #E5D6C3;
+  --color-charcoal: #231F1D;
+  --color-charcoal-muted: #665E57;
+  --color-warm-gold: #C8AE8C;
+  --color-warm-gold-dark: #A38660;
 
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-serif: "Cormorant Garamond", Georgia, Cambria, serif;
+  --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", serif;
 }
 
 @layer base {
   html {
     scroll-behavior: smooth;
     font-family: var(--font-sans);
-    background-color: #FAF6F2;
-    color: #1C1917;
+    background-color: #FDFBF8;
+    color: #231F1D;
   }
 
   body {
-    background-color: #FAF6F2;
-    color: #1C1917;
+    background-color: #FDFBF8;
+    color: #231F1D;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: "Playfair Display", Georgia, Cambria, "Times New Roman", serif;
   }
 }
 
 .font-display {
-  font-family: "Cormorant Garamond", Georgia, Cambria, serif;
+  font-family: "Playfair Display", Georgia, Cambria, "Times New Roman", serif;
 }
 
+.font-sans-body {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Soft luminous light-warm paper texture */
 .safara-grain {
-  background-image: radial-gradient(rgba(28, 25, 23, 0.045) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-image: radial-gradient(rgba(163, 134, 96, 0.08) 1px, transparent 1px);
+  background-size: 26px 26px;
 }
 
-.arch-frame {
-  border-top-left-radius: 9999px;
-  border-top-right-radius: 9999px;
+/* Custom subtle light-warm scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F1E8;
+}
+::-webkit-scrollbar-thumb {
+  background: #DECBB4;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C8AE8C;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s ease-out forwards;
 }

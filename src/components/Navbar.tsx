@@ -1,123 +1,169 @@
-import { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Search, ShieldCheck, ShoppingBag, X } from 'lucide-react';
 import { BrandLogo } from '@/components/BrandLogo';
 
-interface NavbarProps {
-  cartCount?: number;
-}
-
-export function Navbar({ cartCount = 0 }: NavbarProps) {
+export const Navbar: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `inline-flex items-center gap-2 border-b pb-1 text-xs font-medium tracking-[0.16em] uppercase transition-colors ${
-      isActive
-        ? 'border-[#1C1917] text-[#1C1917]'
-        : 'border-transparent text-[#57534E] hover:border-[#D6C3B3] hover:text-[#1C1917]'
-    }`;
+  const isActive = (path: string) => location.pathname === path;
+
+  const handleScrollLink = (sectionId: string) => {
+    setMobileOpen(false);
+    if (location.pathname !== '/') {
+      navigate('/');
+      window.setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+      }, 120);
+    } else {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#D6C3B3]/80 bg-[#FAF6F2]/92 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
-        <Link to="/" className="group focus:outline-none" aria-label="Beranda Safara Prayer">
+    <header className="sticky top-0 z-40 border-b border-[#E5D6C3] bg-[#FDFBF8]/92 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        {/* Brand Logo */}
+        <Link
+          to="/"
+          onClick={() => setMobileOpen(false)}
+          className="focus:outline-none"
+          aria-label="Safara Prayer Beranda"
+        >
           <BrandLogo variant="horizontal" />
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Navigasi Utama">
-          <NavLink to="/" end className={navLinkClass}>
-            <ShoppingBag className="h-3.5 w-3.5" />
-            <span>Katalog &amp; Pesan</span>
-            {cartCount > 0 && (
-              <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#1C1917] px-1.5 text-[10px] font-semibold text-[#FAF6F2]">
-                {cartCount}
-              </span>
-            )}
-          </NavLink>
-
-          <NavLink to="/track" className={navLinkClass}>
+        {/* Desktop Nav */}
+        <nav className="hidden items-center gap-7 md:flex">
+          <Link
+            to="/"
+            className={`text-sm font-medium transition-colors ${
+              isActive('/') ? 'text-[#1E1E1E]' : 'text-[#5A5550] hover:text-[#1E1E1E]'
+            }`}
+          >
+            Beranda
+          </Link>
+          <button
+            type="button"
+            onClick={() => handleScrollLink('katalog')}
+            className="text-sm font-medium text-[#5A5550] transition-colors hover:text-[#1E1E1E] cursor-pointer"
+          >
+            Katalog
+          </button>
+          <button
+            type="button"
+            onClick={() => handleScrollLink('pesan')}
+            className="text-sm font-medium text-[#5A5550] transition-colors hover:text-[#1E1E1E] cursor-pointer"
+          >
+            Form Pemesanan
+          </button>
+          <Link
+            to="/track"
+            className={`inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
+              isActive('/track')
+                ? 'text-[#A6885E] font-semibold'
+                : 'text-[#5A5550] hover:text-[#1E1E1E]'
+            }`}
+          >
             <Search className="h-3.5 w-3.5" />
-            <span>Lacak Pesanan</span>
-          </NavLink>
-
-          <NavLink to="/admin" className={navLinkClass}>
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Admin</span>
-          </NavLink>
+            Lacak Pesanan
+          </Link>
         </nav>
 
-        {/* Mobile Menu Button */}
+        {/* Desktop Actions */}
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            to="/admin"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium tracking-wide transition-all ${
+              isActive('/admin')
+                ? 'border-[#C5A880] bg-[#EADBC8]/60 text-[#1E1E1E]'
+                : 'border-[#EADBC8] bg-[#F5EFEB] text-[#1E1E1E] hover:border-[#C5A880]'
+            }`}
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-[#A6885E]" />
+            Admin
+          </Link>
+          <button
+            type="button"
+            onClick={() => handleScrollLink('pesan')}
+            className="inline-flex items-center gap-2 rounded-full bg-[#1E1E1E] px-5 py-2 text-xs font-medium tracking-wide text-[#FAF8F5] shadow-sm transition-all hover:bg-slate-800 cursor-pointer"
+          >
+            <ShoppingBag className="h-3.5 w-3.5 text-[#C5A880]" />
+            Pesan Sekarang
+          </button>
+        </div>
+
+        {/* Mobile Menu Toggle */}
         <button
           type="button"
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#D6C3B3] bg-[#F3E5D8]/60 text-[#1C1917] transition hover:bg-[#E8D4C3] md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#EADBC8] bg-[#F5EFEB] text-[#1E1E1E] md:hidden"
           aria-label="Buka menu navigasi"
-          aria-expanded={mobileOpen}
         >
-          {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile Dropdown */}
       {mobileOpen && (
-        <div className="border-t border-[#D6C3B3]/70 bg-[#FAF6F2] px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-3" aria-label="Navigasi Mobile">
-            <NavLink
+        <div className="border-t border-[#EADBC8] bg-[#FAF8F5] px-4 py-4 shadow-lg md:hidden">
+          <div className="flex flex-col gap-2">
+            <Link
               to="/"
-              end
               onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center justify-between rounded-xl px-4 py-3 text-xs font-medium tracking-[0.14em] uppercase transition ${
-                  isActive
-                    ? 'bg-[#1C1917] text-[#FAF6F2]'
-                    : 'bg-[#F3E5D8]/60 text-[#1C1917] hover:bg-[#E8D4C3]'
-                }`
-              }
+              className={`rounded-xl px-4 py-2.5 text-sm font-medium ${
+                isActive('/') ? 'bg-[#EADBC8]/60 text-[#1E1E1E]' : 'text-[#5A5550]'
+              }`}
             >
-              <span className="inline-flex items-center gap-2.5">
-                <ShoppingBag className="h-4 w-4" />
-                Katalog &amp; Pesan
-              </span>
-              {cartCount > 0 && (
-                <span className="rounded-full bg-[#E8D4C3] px-2 py-0.5 text-[10px] font-semibold text-[#1C1917]">
-                  {cartCount} item
-                </span>
-              )}
-            </NavLink>
-
-            <NavLink
+              Beranda
+            </Link>
+            <button
+              type="button"
+              onClick={() => handleScrollLink('katalog')}
+              className="rounded-xl px-4 py-2.5 text-left text-sm font-medium text-[#5A5550] hover:bg-[#F5EFEB]"
+            >
+              Katalog Produk
+            </button>
+            <button
+              type="button"
+              onClick={() => handleScrollLink('pesan')}
+              className="rounded-xl px-4 py-2.5 text-left text-sm font-medium text-[#5A5550] hover:bg-[#F5EFEB]"
+            >
+              Form Pemesanan
+            </button>
+            <Link
               to="/track"
               onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-xl px-4 py-3 text-xs font-medium tracking-[0.14em] uppercase transition ${
-                  isActive
-                    ? 'bg-[#1C1917] text-[#FAF6F2]'
-                    : 'bg-[#F3E5D8]/60 text-[#1C1917] hover:bg-[#E8D4C3]'
-                }`
-              }
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
+                isActive('/track') ? 'bg-[#EADBC8]/60 text-[#1E1E1E]' : 'text-[#5A5550]'
+              }`}
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4 text-[#A6885E]" />
               Lacak Pesanan
-            </NavLink>
-
-            <NavLink
+            </Link>
+            <Link
               to="/admin"
               onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-xl px-4 py-3 text-xs font-medium tracking-[0.14em] uppercase transition ${
-                  isActive
-                    ? 'bg-[#1C1917] text-[#FAF6F2]'
-                    : 'bg-[#F3E5D8]/60 text-[#1C1917] hover:bg-[#E8D4C3]'
-                }`
-              }
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium ${
+                isActive('/admin') ? 'bg-[#EADBC8]/60 text-[#1E1E1E]' : 'text-[#5A5550]'
+              }`}
             >
-              <ShieldCheck className="h-4 w-4" />
-              Panel Admin
-            </NavLink>
-          </nav>
+              <ShieldCheck className="h-4 w-4 text-[#A6885E]" />
+              Admin Dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={() => handleScrollLink('pesan')}
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[#1E1E1E] px-5 py-3 text-sm font-medium text-[#FAF8F5]"
+            >
+              <ShoppingBag className="h-4 w-4 text-[#C5A880]" />
+              Pesan Sekarang
+            </button>
+          </div>
         </div>
       )}
     </header>
   );
-}
+};
